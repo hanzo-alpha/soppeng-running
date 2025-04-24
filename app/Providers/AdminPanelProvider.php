@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Filament\Admin\Pages\Settings;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Croustibat\FilamentJobsMonitor\FilamentJobsMonitorPlugin;
 use Devonab\FilamentEasyFooter\EasyFooterPlugin;
@@ -27,6 +28,7 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Jeffgreco13\FilamentBreezy\BreezyCore;
+use Outerweb\FilamentSettings\Filament\Plugins\FilamentSettingsPlugin;
 use Swis\Filament\Backgrounds\FilamentBackgroundsPlugin;
 use Tapp\FilamentWebhookClient\FilamentWebhookClientPlugin;
 
@@ -76,19 +78,6 @@ class AdminPanelProvider extends PanelProvider
             ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
             ->globalSearchFieldKeyBindingSuffix()
             ->font('Poppins')
-            ->plugins([
-                BreezyCore::make()
-                    ->myProfile(
-                        navigationGroup: 'Settings',
-                    ),
-                FilamentJobsMonitorPlugin::make(),
-                PhosphorIconReplacement::make(),
-                FilamentWebhookClientPlugin::make(),
-                EasyFooterPlugin::make()
-                    ->withLoadTime('Halaman ini dimuat dalam ')
-                    ->withGithub()
-                    ->withSentence(config('app.brand') . ' - ' . config('app.event')),
-            ])
             ->discoverResources(in: app_path('Filament/Admin/Resources'), for: 'App\\Filament\\Admin\\Resources')
             ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\\Filament\\Admin\\Pages')
             ->pages([
@@ -115,13 +104,25 @@ class AdminPanelProvider extends PanelProvider
             ->plugins([
                 FilamentShieldPlugin::make(),
                 BreezyCore::make()
-                    ->myProfile(shouldRegisterUserMenu: true),
-                FilamentBackgroundsPlugin::make(),
+                    ->myProfile(
+                        navigationGroup: 'Settings',
+                    ),
+                FilamentJobsMonitorPlugin::make(),
+                PhosphorIconReplacement::make(),
+                FilamentWebhookClientPlugin::make(),
                 ThemesPlugin::make(),
+                FilamentBackgroundsPlugin::make(),
+                FilamentSettingsPlugin::make()
+                    ->pages([
+                        Settings::class,
+                    ]),
+                EasyFooterPlugin::make()
+                    ->withLoadTime('Halaman ini dimuat dalam ')
+                    ->withGithub()
+                    ->withSentence(config('app.brand') . ' - ' . config('app.event')),
             ])
             ->authMiddleware([
                 Authenticate::class,
-            ])
-            ->viteTheme('resources/css/filament/admin/theme.css');
+            ]);
     }
 }

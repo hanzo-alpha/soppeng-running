@@ -17,6 +17,7 @@ use App\Enums\UkuranJersey;
 use App\Mail\PembayaranBerhasil;
 use App\Models\KategoriLomba;
 use App\Models\Pembayaran;
+use App\Models\Peserta;
 use App\Services\MidtransAPI;
 use Closure;
 use Exception;
@@ -69,7 +70,7 @@ class Pendaftaran extends Page implements HasForms
     protected static string $view = 'filament.app.pages.pendafaran';
     protected static ?string $navigationLabel = 'Registrasi Peserta';
     protected static bool $shouldRegisterNavigation = true;
-    protected ?string $heading = 'Pendaftaran Online Peserta Bantaeng Trail Run 2025';
+    protected ?string $heading = 'Pendaftaran Online Peserta ETC Night Run & Concert 2025';
     protected ?string $subheading = 'Silahkan lengkapi data peserta di bawah ini.';
 
     public static function getNavigationBadge(): ?string
@@ -108,6 +109,7 @@ class Pendaftaran extends Page implements HasForms
 
         // Retrieve registrasi and related pembayaran
         $registrasi = \App\Models\Pendaftaran::where('uuid_pendaftaran', $transactionOrderId)->first();
+        $peserta = $registrasi?->peserta;
         $pembayaran = $registrasi?->pembayaran;
 
         // Handle missing pembayaran
@@ -123,6 +125,7 @@ class Pendaftaran extends Page implements HasForms
         // Process payment and registration statuses
         $statusBayar = $this->getPaymentStatus($transactionStatus);
         $statusRegistrasi = $this->getRegistrationStatus($transactionStatus);
+        $statusPendaftaran = $this->getPendaftaranStatus($registrasi->status_pendaftaran);
         $paymentTypeEnum = $this->getPaymentType($paymentType);
         $statusDaftar = StatusRegistrasi::BERHASIL === $statusRegistrasi
             ? StatusDaftar::TERDAFTAR
@@ -136,9 +139,10 @@ class Pendaftaran extends Page implements HasForms
             $statusBayar,
             $transactionStatus,
             $result,
-            $statusDaftar,
             $grossAmount,
         );
+
+        $this->updatePeserta($peserta, $statusDaftar);
         $this->updateRegistration($registrasi, $statusRegistrasi);
 
         // Handle redirect
@@ -175,7 +179,6 @@ class Pendaftaran extends Page implements HasForms
             return;
         } catch (Throwable $exception) {
             $this->rollBackDatabaseTransaction();
-
             throw $exception;
         }
 
@@ -213,12 +216,13 @@ class Pendaftaran extends Page implements HasForms
     protected function handleRecordCreation(array $data): Model
     {
         $this->initializeDefaults($data);
+        $peserta = $data['peserta'];
 
         $biaya = biaya_pendaftaran($data['kategori_lomba']) ?? 0;
-        $totalAmount = $biaya; // $qty is always 1
+        $totalAmount = $biaya;
         $kategori = KategoriLomba::find($data['kategori_lomba']);
         $namaKegiatan = $this->buildNamaKegiatan($kategori);
-        $merchant = 'Freeletics Bantaeng';
+        $merchant = 'Soppeng Berlari';
 
         midtrans_config();
 
@@ -230,9 +234,12 @@ class Pendaftaran extends Page implements HasForms
             'transactions' => $transactions,
             'items' => $items,
             'customers' => $customers,
-            'custom_field1' => '5000',
+            'custom_field1' => 5000,
         ];
 
+        $idPeserta = $this->createPeserta($peserta);
+        $data['peserta_id'] = $idPeserta;
+        unset($data['peserta']);
         $record = new ($this->getModel())($data);
         $record->save();
 
@@ -278,7 +285,7 @@ class Pendaftaran extends Page implements HasForms
                 ->model($this->getModel())
                 ->statePath($this->getFormStatePath())
                 ->columns($this->hasInlineLabels() ? 1 : 2)
-                ->inlineLabel($this->hasInlineLabels()), ),
+                ->inlineLabel($this->hasInlineLabels())),
         ];
     }
 
@@ -316,6 +323,7 @@ class Pendaftaran extends Page implements HasForms
             ->schema([
                 Section::make('Data Peserta')
                     ->schema(self::buildDataPesertaFields())
+                    ->model(Peserta::class)
                     ->columns(2),
             ]);
     }
@@ -353,7 +361,7 @@ class Pendaftaran extends Page implements HasForms
                 ->label('Kode Peserta')
                 ->required()
                 ->hidden()
-                ->default(self::generateUuid())
+                ->default(generateUuid())
                 ->suffixAction(self::copyToClipboardAction())
                 ->maxLength(255),
 
@@ -395,13 +403,17 @@ class Pendaftaran extends Page implements HasForms
             Forms\Components\TextInput::make('nomor_kartu_identitas')
                 ->label('Nomor Kartu Identitas')
                 ->required()
-                ->numeric(),
+                ->numeric()
+                ->minLength(16)
+                ->maxLength(16),
             Forms\Components\TextInput::make('nama_kontak_darurat')
                 ->label('Nama Kontak Darurat')
                 ->required(),
             Forms\Components\TextInput::make('nomor_kontak_darurat')
                 ->label('Nomor Kontak Darurat')
-                ->required(),
+                ->required()
+                ->minLength(9)
+                ->maxLength(12),
             Forms\Components\Select::make('golongan_darah')
                 ->label('Golongan Darah')
                 ->options(GolonganDarah::class)
@@ -473,7 +485,7 @@ class Pendaftaran extends Page implements HasForms
                 ->live(onBlur: true)
                 ->required()
                 ->dehydrated()
-                ->default(StatusPendaftaran::BELUM)
+                ->default(StatusPendaftaran::TIKET_RUN)
                 ->afterStateUpdated(fn(Forms\Set $set) => $set('kategori_lomba', null)),
             Forms\Components\Select::make('kategori_lomba')
                 ->label('Kategori Lomba')
@@ -494,13 +506,15 @@ class Pendaftaran extends Page implements HasForms
                 ->options(UkuranJersey::class)
                 ->enum(UkuranJersey::class)
                 ->required(),
-        ];
-    }
+            Forms\Components\TextInput::make('no_bib')
+                ->label('Nomor BIB Peserta')
+                ->default(generateNomorBib())
+                ->required(),
 
-    /** Generates a UUID */
-    private static function generateUuid(): string
-    {
-        return Str::uuid()->toString();
+            Forms\Components\TextInput::make('nama_bib')
+                ->label('Nama BIB Peserta')
+                ->required(),
+        ];
     }
 
     /** Action for copying text to clipboard */
@@ -542,14 +556,14 @@ class Pendaftaran extends Page implements HasForms
 
     private function initializeDefaults(array &$data): void
     {
-        $data['uuid_pendaftaran'] ??= self::generateUuid();
+        $data['uuid_pendaftaran'] ??= generateUuid();
         $data['status_registrasi'] ??= StatusRegistrasi::BELUM_BAYAR;
-        $data['provinsi'] ??= '74';
+        $data['provinsi'] ??= '73';
     }
 
     private function buildNamaKegiatan(KategoriLomba $kategori): string
     {
-        return 'Pendaftaran Bantaeng Trail Run 2025 Kategori Lomba - ' . $kategori->nama;
+        return 'Pendaftaran ETC Night Run & Concert - ' . $kategori->nama;
     }
 
     private function createTransactionData(string $orderId, int|float $grossAmount): array
@@ -563,7 +577,7 @@ class Pendaftaran extends Page implements HasForms
     private function createItemData(int|float $price, KategoriLomba $kategori, string $eventName, string $merchant): array
     {
         return [
-            'id' => self::generateUuid(),
+            'id' => generateUuid(),
             'price' => $price,
             'quantity' => 1,
             'name' => $eventName,
@@ -590,6 +604,26 @@ class Pendaftaran extends Page implements HasForms
         ];
     }
 
+    private function createPeserta(array $data): ?int
+    {
+        $peserta = Peserta::create([
+            'nama_lengkap' => $data['nama_lengkap'],
+            'no_telp' => $data['no_telp'],
+            'email' => $data['email'],
+            'tempat_lahir' => $data['tempat_lahir'],
+            'tanggal_lahir' => $data['tanggal_lahir'],
+            'jenis_kelamin' => $data['jenis_kelamin'],
+            'tipe_kartu_identitas' => $data['tipe_kartu_identitas'],
+            'nomor_kartu_identitas' => $data['nomor_kartu_identitas'],
+            'nama_kontak_darurat' => $data['nama_kontak_darurat'],
+            'nomor_kontak_darurat' => $data['nomor_kontak_darurat'],
+            'golongan_darah' => $data['golongan_darah'],
+            'komunitas' => $data['komunitas'],
+        ]);
+
+        return $peserta->id;
+    }
+
     private function createPembayaran(
         Model $record,
         array $data,
@@ -602,17 +636,13 @@ class Pendaftaran extends Page implements HasForms
             'order_id' => $record->uuid_pendaftaran,
             'pendaftaran_id' => $record->id,
             'nama_kegiatan' => $eventName,
-            'ukuran_jersey' => $data['ukuran_jersey'],
-            'kategori_lomba' => $data['kategori_lomba'],
-            'jumlah' => 1, // Always 1
+            'jumlah' => 1,
             'satuan' => 'Peserta',
             'harga_satuan' => $unitPrice,
             'total_harga' => $totalAmount,
             'status_pembayaran' => StatusBayar::BELUM_BAYAR,
             'status_transaksi' => PaymentStatus::CAPTURE,
-            'status_daftar' => StatusDaftar::TERDAFTAR,
             'keterangan' => null,
-            'status_pendaftaran' => $data['status_pendaftaran'] ?? StatusPendaftaran::BELUM,
             'detail_transaksi' => $detailTransaksi,
             'lampiran' => null,
         ]);
@@ -642,6 +672,15 @@ class Pendaftaran extends Page implements HasForms
         };
     }
 
+    private function getPendaftaranStatus($transactionStatus): StatusPendaftaran
+    {
+        return match ($transactionStatus) {
+            StatusPendaftaran::TIKET_KONSER->value => StatusPendaftaran::TIKET_KONSER,
+            StatusPendaftaran::NIGHT_RUN->value => StatusPendaftaran::NIGHT_RUN,
+            default => StatusPendaftaran::TIKET_RUN,
+        };
+    }
+
     private function getPaymentType($paymentType): TipeBayar
     {
         return match ($paymentType) {
@@ -657,25 +696,30 @@ class Pendaftaran extends Page implements HasForms
         $status,
         $transactionStatus,
         $result,
-        $statusDaftar,
         $grossAmount,
     ): void {
         $pembayaran->order_id = $orderId;
-        $pembayaran->uuid_pembayaran ??= self::generateUuid();
+        $pembayaran->uuid_pembayaran ??= generateUuid();
         $pembayaran->tipe_pembayaran = $paymentType;
         $pembayaran->status_pembayaran = $status;
         $pembayaran->total_harga = $grossAmount;
         $pembayaran->harga_satuan = $grossAmount;
         $pembayaran->status_transaksi = $transactionStatus;
         $pembayaran->detail_transaksi = $result;
-        $pembayaran->status_daftar = $statusDaftar;
         $pembayaran->lampiran = null;
         $pembayaran->save();
+    }
+
+    private function updatePeserta($peserta, $statusPeserta): void
+    {
+        $peserta->status_peserta = $statusPeserta;
+        $peserta->save();
     }
 
     private function updateRegistration($registrasi, $statusRegistrasi): void
     {
         $registrasi->status_registrasi = $statusRegistrasi;
+        $registrasi->status_pengambilan = false;
         $registrasi->save();
     }
 

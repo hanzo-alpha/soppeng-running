@@ -10,6 +10,7 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Hasnayeen\Themes\ThemesPlugin;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -31,7 +32,7 @@ class AppPanelProvider extends PanelProvider
             ->spa()
             ->databaseNotifications()
             ->databaseTransactions()
-            ->defaultThemeMode(ThemeMode::Dark)
+            ->defaultThemeMode(ThemeMode::Light)
             ->colors([
                 'danger' => Color::Rose,
                 'gray' => Color::Gray,
@@ -51,6 +52,7 @@ class AppPanelProvider extends PanelProvider
                 'amber' => Color::Amber,
                 'lime' => Color::Lime,
             ])
+            ->font('Montserrat')
             ->plugins([
                 BreezyCore::make()
                     ->enableTwoFactorAuthentication(
@@ -59,6 +61,7 @@ class AppPanelProvider extends PanelProvider
                     ->myProfile(
                         navigationGroup: 'Pengaturan',
                     ),
+                ThemesPlugin::make(),
             ])
             ->discoverResources(in: app_path('Filament/App/Resources'), for: 'App\\Filament\\App\\Resources')
             ->discoverPages(in: app_path('Filament/App/Pages'), for: 'App\\Filament\\App\\Pages')
@@ -81,7 +84,6 @@ class AppPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
 
-            ])
-            ->viteTheme('resources/css/filament/app/theme.css');
+            ]);
     }
 }

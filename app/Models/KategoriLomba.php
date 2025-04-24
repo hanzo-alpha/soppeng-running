@@ -17,6 +17,7 @@ class KategoriLomba extends Model
     protected $fillable = [
         'nama',
         'harga',
+        'jumlah',
         'warna',
         'kategori',
         'kabupaten',
@@ -25,7 +26,8 @@ class KategoriLomba extends Model
 
     protected $casts = [
         'kategori' => StatusPendaftaran::class,
-        'kabupaten' => 'array',
+        'kabupaten' => 'string',
+        'jumlah' => 'integer',
     ];
 
     public function pendaftaran(): BelongsTo

@@ -11,12 +11,15 @@ use App\Filament\Exports\PendaftaranExporter;
 use App\Models\Pembayaran;
 use Filament\Actions;
 use Filament\Actions\Exports\Enums\ExportFormat;
+use Filament\Pages\Concerns\ExposesTableToWidgets;
 use Filament\Resources\Components\Tab;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
 
 class ListPendaftarans extends ListRecords
 {
+    use ExposesTableToWidgets;
+
     protected static string $resource = PendaftaranResource::class;
 
     //    public function getTabs(): array

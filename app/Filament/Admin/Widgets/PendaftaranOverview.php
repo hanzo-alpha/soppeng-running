@@ -5,22 +5,38 @@ declare(strict_types=1);
 namespace App\Filament\Admin\Widgets;
 
 use App\Enums\StatusRegistrasi;
+use App\Filament\Admin\Resources\PendaftaranResource\Pages\ListPendaftarans;
 use App\Models\Pendaftaran;
+use Filament\Widgets\Concerns\InteractsWithPageTable;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Number;
 
 class PendaftaranOverview extends BaseWidget
 {
+    use InteractsWithPageTable;
+
+    protected function getTablePage(): string
+    {
+        return ListPendaftarans::class;
+    }
+
     protected function getStats(): array
     {
-        $countEarly = Pendaftaran::count();
-        $totalBayarLunas = Pendaftaran::query()
-            ->where('status_registrasi', StatusRegistrasi::BERHASIL)
-            ->count();
-        $totalFailed = Pendaftaran::query()
-            ->where('status_registrasi', StatusRegistrasi::BATAL)
-            ->count();
+        $countTiketKonser = $this->getPageTableQuery()->whereHas(
+            'kategori',
+            fn($query) => $query->where('kategori', 'tiket_konser'),
+        )->count();
+        $countNightRun = $this->getPageTableQuery()->whereHas(
+            'kategori',
+            fn($query) => $query->where('kategori', 'night_run'),
+        )->count();
+        $countTiketRun = $this->getPageTableQuery()->whereHas(
+            'kategori',
+            fn($query) => $query->where('kategori', 'tiket_run'),
+        )->count();
+        $countAll = $this->getPageTableQuery()->count();
+
         $totalPending = Pendaftaran::query()
             ->whereIn('status_registrasi', [
                 StatusRegistrasi::TUNDA,
@@ -29,29 +45,29 @@ class PendaftaranOverview extends BaseWidget
             ->count();
         return [
             Stat::make(
-                'Jumlah Pendaftar Registrasi',
-                Number::format($countEarly, 0, null, 'id') . ' Peserta',
+                'Jumlah Semua Peserta',
+                Number::format($countAll, 0, null, 'id') . ' Peserta',
             )
-                ->description('Total Semua Pendaftar')
+                ->description('Jumlah Peserta Semua Kategori')
                 ->color('primary'),
             Stat::make(
-                'Jumlah Peserta Lunas',
-                Number::format($totalBayarLunas, 0, null, 'id') . ' Peserta',
+                'Jumlah Peserta Tiket Konser',
+                Number::format($countTiketKonser, 0, null, 'id') . ' Peserta',
             )
-                ->description('Pembayaran Lunas')
-                ->color('info'),
+                ->description('Peserta Kategori Tiket Konser')
+                ->color('secondary'),
             Stat::make(
-                'Jumlah Peserta Pending',
-                Number::format($totalPending, 0, null, 'id') . ' Peserta',
+                'Jumlah Peserta Night Run',
+                Number::format($countNightRun, 0, null, 'id') . ' Peserta',
             )
-                ->description('Pembayaran Pending')
-                ->color('warning'),
-            Stat::make(
-                'Jumlah Peserta Kedaluwarsa',
-                Number::format($totalFailed, 0, null, 'id') . ' Peserta',
-            )
-                ->description('Pembayaran Kedaluwarsa')
+                ->description('Peserta Kategori Night Run')
                 ->color('danger'),
+            Stat::make(
+                'Peserta Tiket Run & Konser',
+                Number::format($countTiketRun, 0, null, 'id') . ' Peserta',
+            )
+                ->description('Kategori Tiket Run & Konser')
+                ->color('warning'),
         ];
     }
 }

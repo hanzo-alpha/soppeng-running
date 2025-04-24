@@ -25,13 +25,13 @@ class LatestPembayaran extends BaseWidget
             )
             ->paginated(false)
             ->columns([
-                Tables\Columns\TextColumn::make('pendaftaran.nama_lengkap')
+                Tables\Columns\TextColumn::make('pendaftaran.peserta.nama_lengkap')
                     ->label('Nama Lengkap'),
-                Tables\Columns\TextColumn::make('kategori.nama')
+                Tables\Columns\TextColumn::make('pendaftaran.kategori.nama')
                     ->label('Kategori')
                     ->alignCenter()
                     ->badge(),
-                Tables\Columns\TextColumn::make('ukuran_jersey')
+                Tables\Columns\TextColumn::make('pendaftaran.ukuran_jersey')
                     ->label('Ukuran Jersey')
                     ->badge()
                     ->alignCenter(),

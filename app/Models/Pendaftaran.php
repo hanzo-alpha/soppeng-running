@@ -25,6 +25,8 @@ class Pendaftaran extends Model
 
     protected $fillable = [
         'peserta_id',
+        'no_bib',
+        'nama_bib',
         'alamat',
         'negara',
         'provinsi',
@@ -36,8 +38,11 @@ class Pendaftaran extends Model
         'status_registrasi',
         'status_pendaftaran',
         'uuid_pendaftaran',
+        'qr_url',
+        'qr_options',
     ];
-    protected $with = ['kategori', 'pembayaran'];
+
+//    protected $with = ['kategori', 'pembayaran', 'peserta'];
 
     public function uniqueIds(): array
     {
@@ -73,6 +78,8 @@ class Pendaftaran extends Model
             'status_pendaftaran' => StatusPendaftaran::class,
             'status_pengambilan' => 'boolean',
             'qr_options' => 'array',
+            'no_bib' => 'string',
+            'nama_bib' => 'string',
         ];
     }
 }

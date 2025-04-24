@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\KategoriLomba;
+use App\Models\Pendaftaran;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 
@@ -10,6 +11,29 @@ if ( ! function_exists('date_format')) {
     function date_format($date, $format): string
     {
         return Carbon::createFromFormat('Y-m-d', $date)->format($format);
+    }
+}
+
+if ( ! function_exists('generateNomorBib')) {
+    function generateNomorBib($id = null, $length = 4, $pad = '0'): string
+    {
+        $pad ??= $pad ?? '0';
+
+        if (null !== $id) {
+            $modelClass = Pendaftaran::find($id)->no_bib + $id;
+            return Str::padLeft($modelClass, $length, $pad);
+        }
+
+        $modelClass = Pendaftaran::class;
+        $max = $modelClass::max('id') + 1;
+        return Str::padLeft($max, $length, $pad);
+    }
+}
+
+if ( ! function_exists('generateUuid')) {
+    function generateUuid(): string
+    {
+        return Str::uuid()->toString();
     }
 }
 

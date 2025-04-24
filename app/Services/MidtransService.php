@@ -82,7 +82,7 @@ use Midtrans\Snap;
         return Snap::getSnapToken($params);
     }
 
-    public function transformToArray(array $data)
+    public function transformToArray(array $data): array
     {
         $collect = collect();
         foreach ($data as $key => $value) {

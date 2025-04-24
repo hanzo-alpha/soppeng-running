@@ -25,6 +25,7 @@ enum UkuranJersey: string implements HasLabel
     case XL_WOMEN = 'XL_WOMEN';
     case XXL_WOMEN = '2XL_WOMEN';
     case XXXL_WOMEN = '3XL_WOMEN';
+    case ALL_SIZE = 'ALL_SIZE';
 
     public static function toArray(): array
     {
@@ -54,6 +55,7 @@ enum UkuranJersey: string implements HasLabel
             self::XL_WOMEN => __('XL - WOMEN'),
             self::XXL_WOMEN => __('2XL - WOMEN'),
             self::XXXL_WOMEN => __('3XL - WOMEN'),
+            self::ALL_SIZE => __('ALL SIZE'),
         };
     }
 

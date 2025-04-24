@@ -23,7 +23,7 @@ return new class () extends Migration {
             $table->foreignId('kategori_lomba')->nullable();
             $table->string('komunitas')->nullable();
             $table->string('status_registrasi')->nullable();
-            $table->string('status_pendaftaran')->nullable()->default(StatusPendaftaran::BELUM_TERDAFTAR);
+            $table->string('status_pendaftaran')->nullable()->default(StatusPendaftaran::BELUM);
             $table->timestamps();
             $table->softDeletes();
         });

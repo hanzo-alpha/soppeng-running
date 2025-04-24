@@ -37,16 +37,19 @@ class KategoriLombaResource extends Resource
                     ->maxLength(255),
                 Forms\Components\TextInput::make('harga')
                     ->numeric(),
+                Forms\Components\TextInput::make('jumlah')
+                    ->label('Jumlah Persediaan')
+                    ->numeric(),
                 Forms\Components\ColorPicker::make('warna'),
-                Forms\Components\ToggleButtons::make('kategori')
-                    ->options(StatusPendaftaran::class)
+                Forms\Components\Select::make('kategori')
                     ->label('Kategori')
-                    ->inline()
-                    ->default(StatusPendaftaran::BELUM)
+                    ->options(StatusPendaftaran::class)
+                    ->native(false)
+                    ->searchable()
+                    ->default(StatusPendaftaran::TIKET_RUN)
                     ->required(),
                 Forms\Components\Select::make('kabupaten')
-                    ->multiple()
-                    ->options(fn() => City::whereIn('code', ['7313', '7312', '7314', '7308'])->pluck('name', 'code'))
+                    ->options(fn() => City::whereIn('code', ['7312', '7313', '7314'])->pluck('name', 'code'))
                     ->native(false),
                 Forms\Components\TextInput::make('deskripsi')
                     ->maxLength(255),
